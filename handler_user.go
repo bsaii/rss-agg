@@ -5,11 +5,12 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/bsaii/rss-agg/internal/auth"
 	"github.com/bsaii/rss-agg/internal/database"
 	"github.com/google/uuid"
 )
 
-func (cfg *apiConfig) handleUserCreate(w http.ResponseWriter, r *http.Request) {
+func (cfg *apiConfig) handlerUserCreate(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
 		Name string
 	}
@@ -30,6 +31,22 @@ func (cfg *apiConfig) handleUserCreate(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't create new user")
+		return
+	}
+
+	respondWithJSON(w, http.StatusCreated, databaseUserToUser(user))
+}
+
+func (cfg *apiConfig) handlerUserGet(w http.ResponseWriter, r *http.Request) {
+	apiKey, err := auth.GetApiKey(r.Header)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Couldn't find api key")
+		return
+	}
+
+	user, err := cfg.DB.GetUserByAPIKey(r.Context(), apiKey)
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, "Couldn't get user")
 		return
 	}
 
